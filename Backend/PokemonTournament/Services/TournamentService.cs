@@ -1,4 +1,4 @@
-﻿using PokemonTournament.Enums;
+using PokemonTournament.Enums;
 using PokemonTournament.Infrastructure;
 using PokemonTournament.Models;
 using Microsoft.Extensions.Options;
@@ -10,10 +10,8 @@ namespace PokemonTournament.Services
     public class TournamentService : ITournamentService
     {
         private readonly IBattleService _battleService;
-        private readonly IPokeClient _pokeClient;
-        private readonly TournamentOptions _options;
+        private readonly IRosterProvider _rosterProvider;
         private readonly ILogger<TournamentService> _logger;
-        private readonly IAlertService _alertService;
 
 
         public TournamentService(
@@ -24,20 +22,19 @@ namespace PokemonTournament.Services
             IAlertService? alertService = null)
         {
             _battleService = battleService;
-            _pokeClient = pokeClient;
-            _options = options.Value;
             _logger = logger ?? NullLogger<TournamentService>.Instance;
-            _alertService = alertService ?? new LoggingAlertService(
-                NullLogger<LoggingAlertService>.Instance);
 
-            if (_options.MinPokemonId < 1 ||
-                _options.MaxPokemonId < _options.MinPokemonId ||
-                _options.DefaultParticipantCount < 2 ||
-                _options.DefaultParticipantCount > _options.MaxPokemonId - _options.MinPokemonId + 1 ||
-                _options.MaxConcurrentRequests < 1)
+            var tournamentOptions = options.Value;
+            if (tournamentOptions.MinPokemonId < 1 ||
+                tournamentOptions.MaxPokemonId < tournamentOptions.MinPokemonId ||
+                tournamentOptions.DefaultParticipantCount < 2 ||
+                tournamentOptions.DefaultParticipantCount > tournamentOptions.MaxPokemonId - tournamentOptions.MinPokemonId + 1 ||
+                tournamentOptions.MaxConcurrentRequests < 1)
             {
                 throw new ArgumentException("Tournament configuration is invalid.");
             }
+
+            _rosterProvider = new RosterProvider(pokeClient, tournamentOptions, _logger, alertService);
         }
 
         public async Task<List<Pokemon>> GetTournamentResultsAsync(
@@ -45,64 +42,21 @@ namespace PokemonTournament.Services
             SortDirection sortDirection)
         {
             var stopwatch = Stopwatch.StartNew();
-            var randomIds = SelectRandomIds();
 
-            // Get the json from API to fetch pokemons
-            var responses = new List<PokemonAPIResponse>(randomIds.Count);
-
-            bool stopProcessing = false;
-
-            await Parallel.ForEachAsync(
-                randomIds,
-                new ParallelOptions { MaxDegreeOfParallelism = _options.MaxConcurrentRequests },
-                async (id, cancellationToken) =>
-                {
-                    if (stopProcessing)
-                        return;
-
-                    try
-                    {
-                        var response = await _pokeClient.GetPokemonAsync(id);
-
-                        if (response != null && response.Types != null)
-                        {
-                            lock (responses)
-                            {
-                                responses.Add(response);
-                            }
-                        }
-                        else
-                        {
-                            stopProcessing = true;
-                            _alertService.Raise(
-                                "PokeAPI returned an incomplete response.",
-                                new InvalidOperationException($"Pokemon {id} was missing data."));
-                        }
-                    }
-                    catch (Exception exception)
-                    {
-                        stopProcessing = true;
-                        _alertService.Raise($"PokeAPI request failed for Pokemon {id}.", exception);
-                    }
-                });
+            var roaster = await _rosterProvider.GetRandomRosterAsync();
 
             // If something failed then return null so controller can decide
-            if (stopProcessing || responses.Count != randomIds.Count)
+            if (roaster == null)
             {
                 _logger.LogWarning(
-                    "Tournament failed after {ElapsedMilliseconds} ms. Requested {RequestedCount} Pokemon and received {ResponseCount}.",
-                    stopwatch.ElapsedMilliseconds,
-                    randomIds.Count,
-                    responses.Count);
+                    "Tournament failed after {ElapsedMilliseconds} ms.",
+                    stopwatch.ElapsedMilliseconds);
                 return null;
             }
 
-            // Convert to DTO
-            var roaster = responses.Select(response => ConvertToPokemon(response)).ToList();
-
             // Generate tournament internally
             RunRoundRobin(roaster);
-            
+
             // give result based on sorting
             var sortedResult = Sort(roaster, sortOption, sortDirection).ToList();
             _logger.LogInformation(
@@ -113,33 +67,6 @@ namespace PokemonTournament.Services
         }
 
         #region private methods
-
-        private List<int> SelectRandomIds()
-        {
-            var ids = Enumerable.Range( _options.MinPokemonId,_options.MaxPokemonId - _options.MinPokemonId + 1).ToArray();
-
-            for (var index = 0; index < _options.DefaultParticipantCount; index++)
-            {
-                var swapIndex = Random.Shared.Next(index, ids.Length);
-                (ids[index], ids[swapIndex]) = (ids[swapIndex], ids[index]);
-            }
-
-            return ids.Take(_options.DefaultParticipantCount).ToList();
-        }
-
-        //private List<int> SelectRandomIds()
-        //{
-        //    var ids = new HashSet<int>();
-
-        //    while (ids.Count < _options.DefaultParticipantCount)
-        //    {
-        //        int id = Random.Shared.Next(_options.MinPokemonId, _options.MaxPokemonId + 1);
-        //        ids.Add(id); 
-        //    }
-
-        //    return ids.ToList();
-        //}
-
 
         private void RunRoundRobin(IList<Pokemon> roster)
         {
@@ -201,27 +128,6 @@ namespace PokemonTournament.Services
             }
 
             return sorted;
-        }
-
-
-        private static Pokemon ConvertToPokemon(PokemonAPIResponse response)
-        {
-            string primaryType = "";
-            foreach (var t in response.Types)
-            {
-                if (t.Slot == 1)
-                {
-                    primaryType = t.PokemonAPIType.Name;
-                    break;
-                }
-            }
-            return new Pokemon
-            {
-                Id = response.Id,
-                Name = response.Name,
-                Type = primaryType,
-                BaseExperience = response.BaseExperience,
-            };
         }
 
         #endregion
