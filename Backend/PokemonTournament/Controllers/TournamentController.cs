@@ -55,6 +55,26 @@ namespace PokemonTournament.Controllers
             return Ok(TournamentDto.From(tournament));
         }
 
+        [HttpPost("{id:guid}/rounds")]
+        public IActionResult ProcessRound(Guid id, [FromQuery] int? expectedRound)
+        {
+            var result = _tournamentService.ProcessNextRound(id, expectedRound);
+
+            return result.Status switch
+            {
+                ProcessRoundStatus.Processed =>
+                    Ok(ProcessRoundResponseDto.From(result.Tournament!, result.Round!)),
+                ProcessRoundStatus.NotFound => TournamentNotFound(),
+                ProcessRoundStatus.AlreadyCompleted =>
+                    Conflict(new { error = "Tournament is already completed." }),
+                _ => Conflict(new
+                {
+                    error = $"Round {expectedRound} is not the next round.",
+                    nextRound = result.NextRoundNumber
+                })
+            };
+        }
+
         #endregion
 
         private NotFoundObjectResult TournamentNotFound() =>

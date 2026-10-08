@@ -73,3 +73,71 @@ public class TournamentControllerTests
         Assert.IsType<NotFoundObjectResult>(result);
     }
 }
+
+public class TournamentControllerProcessRoundTests
+{
+    private readonly Mock<IRoundByRoundTournamentService> _service = new();
+    private readonly TournamentController _controller;
+
+    public TournamentControllerProcessRoundTests()
+    {
+        _controller = new TournamentController(_service.Object);
+    }
+
+    [Fact]
+    public void ProcessRound_WhenProcessed_ReturnsRoundResultsAndStandings()
+    {
+        var tournament = Tournament.Create(Guid.NewGuid(), DateTimeOffset.UtcNow, TournamentTests.CreateParticipants());
+        var round = tournament.Rounds[0];
+        foreach (var battle in round.Battles)
+        {
+            battle.Record(PokemonTournament.Enums.BattleResults.FirstWins, PokemonTournament.Enums.BattleOutcomeReason.TypeAdvantage);
+        }
+        _service.Setup(s => s.ProcessNextRound(tournament.Id, 1))
+            .Returns(ProcessRoundResult.Processed(tournament, round));
+
+        var result = _controller.ProcessRound(tournament.Id, 1);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<ProcessRoundResponseDto>(ok.Value);
+        Assert.Equal(1, dto.Round.Number);
+        Assert.Equal(8, dto.Round.Battles.Count);
+        Assert.All(dto.Round.Battles, b =>
+        {
+            Assert.Equal("Processed", b.Status);
+            Assert.Equal("FirstWins", b.Outcome);
+            Assert.Equal(b.First.Id, b.WinnerId);
+            Assert.Equal("TypeAdvantage", b.Reason);
+        });
+        Assert.Equal(8, dto.Standings.Sum(s => s.Wins));
+        Assert.Equal(1, dto.RoundsProcessed);
+        Assert.Equal("InProgress", dto.Status);
+    }
+
+    [Fact]
+    public void ProcessRound_WhenMissing_Returns404()
+    {
+        _service.Setup(s => s.ProcessNextRound(It.IsAny<Guid>(), It.IsAny<int?>()))
+            .Returns(ProcessRoundResult.NotFound());
+
+        Assert.IsType<NotFoundObjectResult>(_controller.ProcessRound(Guid.NewGuid(), null));
+    }
+
+    [Fact]
+    public void ProcessRound_WhenCompleted_Returns409()
+    {
+        _service.Setup(s => s.ProcessNextRound(It.IsAny<Guid>(), It.IsAny<int?>()))
+            .Returns(ProcessRoundResult.AlreadyCompleted());
+
+        Assert.IsType<ConflictObjectResult>(_controller.ProcessRound(Guid.NewGuid(), null));
+    }
+
+    [Fact]
+    public void ProcessRound_WhenExpectedRoundMismatch_Returns409()
+    {
+        _service.Setup(s => s.ProcessNextRound(It.IsAny<Guid>(), It.IsAny<int?>()))
+            .Returns(ProcessRoundResult.RoundMismatch(3));
+
+        Assert.IsType<ConflictObjectResult>(_controller.ProcessRound(Guid.NewGuid(), 2));
+    }
+}

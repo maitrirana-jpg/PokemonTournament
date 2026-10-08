@@ -69,6 +69,21 @@ namespace PokemonTournament.Models
                     : null);
     }
 
+    public sealed record ProcessRoundResponseDto(
+        RoundDto Round,
+        IReadOnlyList<StandingDto> Standings,
+        string Status,
+        int RoundsProcessed,
+        int TotalRounds)
+    {
+        public static ProcessRoundResponseDto From(Tournament tournament, Round round) =>
+            new(RoundDto.From(tournament, round),
+                tournament.GetStandings().Select(StandingDto.From).ToList(),
+                tournament.Status.ToString(),
+                tournament.RoundsProcessed,
+                tournament.Rounds.Count);
+    }
+
     public sealed record TournamentDto(
         Guid Id,
         DateTimeOffset StartedAt,

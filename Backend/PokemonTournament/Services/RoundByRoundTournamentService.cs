@@ -40,5 +40,36 @@ namespace PokemonTournament.Services
         }
 
         public Tournament? Get(Guid id) => _store.Get(id);
+
+        public ProcessRoundResult ProcessNextRound(Guid id, int? expectedRound)
+        {
+            var tournament = _store.Get(id);
+            if (tournament == null)
+            {
+                return ProcessRoundResult.NotFound();
+            }
+
+            lock (tournament.SyncRoot)
+            {
+                var round = tournament.NextRound;
+                if (round == null)
+                {
+                    return ProcessRoundResult.AlreadyCompleted();
+                }
+
+                if (expectedRound.HasValue && expectedRound.Value != round.Number)
+                {
+                    return ProcessRoundResult.RoundMismatch(round.Number);
+                }
+
+                foreach (var battle in round.Battles)
+                {
+                    var (result, reason) = _battleService.Decide(battle.First.ToPokemon(), battle.Second.ToPokemon());
+                    battle.Record(result, reason);
+                }
+
+                return ProcessRoundResult.Processed(tournament, round);
+            }
+        }
     }
 }
