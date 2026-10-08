@@ -55,6 +55,52 @@ namespace PokemonTournament.Controllers
             return Ok(TournamentDto.From(tournament));
         }
 
+        [HttpGet("history")]
+        public IActionResult GetHistory()
+        {
+            var history = _tournamentService.GetHistory()
+                .Select(TournamentSummaryDto.From)
+                .ToList();
+
+            return Ok(history);
+        }
+
+        [HttpGet("{id:guid}/rounds/{roundNumber:int}")]
+        public IActionResult GetRound(Guid id, int roundNumber)
+        {
+            var tournament = _tournamentService.Get(id);
+            if (tournament == null)
+            {
+                return TournamentNotFound();
+            }
+
+            var round = tournament.FindRound(roundNumber);
+            if (round == null)
+            {
+                return NotFound(new { error = "Round not found." });
+            }
+
+            return Ok(RoundDto.From(tournament, round));
+        }
+
+        [HttpGet("{id:guid}/battles/{battleId:int}")]
+        public IActionResult GetBattle(Guid id, int battleId)
+        {
+            var tournament = _tournamentService.Get(id);
+            if (tournament == null)
+            {
+                return TournamentNotFound();
+            }
+
+            var battle = tournament.FindBattle(battleId);
+            if (battle == null)
+            {
+                return NotFound(new { error = "Battle not found." });
+            }
+
+            return Ok(BattleDto.From(battle));
+        }
+
         [HttpPost("{id:guid}/rounds")]
         public IActionResult ProcessRound(Guid id, [FromQuery] int? expectedRound)
         {

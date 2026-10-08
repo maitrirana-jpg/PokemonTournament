@@ -135,6 +135,14 @@ namespace PokemonTournament.Models
         /// (all Rounds when null), ranked by wins desc, ties desc, losses asc, then name.
         /// Equal records share a rank.
         /// </summary>
+        /// <summary>
+        /// Participants sharing the best record; empty before any Round is processed.
+        /// </summary>
+        public IReadOnlyList<Standing> GetLeaders() =>
+            RoundsProcessed == 0
+                ? Array.Empty<Standing>()
+                : GetStandings().Where(s => s.Rank == 1).ToList();
+
         public IReadOnlyList<Standing> GetStandings(int? throughRound = null)
         {
             var records = Participants.ToDictionary(p => p, _ => (Wins: 0, Losses: 0, Ties: 0));

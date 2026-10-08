@@ -41,6 +41,8 @@ namespace PokemonTournament.Services
 
         public Tournament? Get(Guid id) => _store.Get(id);
 
+        public IReadOnlyList<Tournament> GetHistory() => _store.GetAll();
+
         public ProcessRoundResult ProcessNextRound(Guid id, int? expectedRound)
         {
             var tournament = _store.Get(id);

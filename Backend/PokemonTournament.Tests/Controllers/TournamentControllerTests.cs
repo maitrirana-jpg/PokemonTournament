@@ -141,3 +141,104 @@ public class TournamentControllerProcessRoundTests
         Assert.IsType<ConflictObjectResult>(_controller.ProcessRound(Guid.NewGuid(), 2));
     }
 }
+
+public class TournamentControllerReviewTests
+{
+    private readonly Mock<IRoundByRoundTournamentService> _service = new();
+    private readonly TournamentController _controller;
+    private readonly Tournament _tournament =
+        Tournament.Create(Guid.NewGuid(), DateTimeOffset.UtcNow, TournamentTests.CreateParticipants());
+
+    public TournamentControllerReviewTests()
+    {
+        _controller = new TournamentController(_service.Object);
+        _service.Setup(s => s.Get(_tournament.Id)).Returns(_tournament);
+
+        // Round 1 processed: the first Participant of every Battle wins.
+        foreach (var battle in _tournament.Rounds[0].Battles)
+        {
+            battle.Record(PokemonTournament.Enums.BattleResults.FirstWins, PokemonTournament.Enums.BattleOutcomeReason.BaseExperience);
+        }
+    }
+
+    [Fact]
+    public void GetRound_WhenProcessed_ReturnsBattlesAndStandingsAsOfThatRound()
+    {
+        var ok = Assert.IsType<OkObjectResult>(_controller.GetRound(_tournament.Id, 1));
+        var dto = Assert.IsType<RoundDto>(ok.Value);
+
+        Assert.Equal("Processed", dto.Status);
+        Assert.Equal(8, dto.Battles.Count);
+        Assert.Equal(8, dto.Standings!.Sum(s => s.Wins));
+    }
+
+    [Fact]
+    public void GetRound_WhenPending_ReturnsPairingsWithoutStandings()
+    {
+        var ok = Assert.IsType<OkObjectResult>(_controller.GetRound(_tournament.Id, 2));
+        var dto = Assert.IsType<RoundDto>(ok.Value);
+
+        Assert.Equal("Pending", dto.Status);
+        Assert.All(dto.Battles, b => Assert.Null(b.Outcome));
+        Assert.Null(dto.Standings);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(16)]
+    public void GetRound_WhenRoundOutOfRange_Returns404(int roundNumber)
+    {
+        Assert.IsType<NotFoundObjectResult>(_controller.GetRound(_tournament.Id, roundNumber));
+    }
+
+    [Fact]
+    public void GetRound_WhenTournamentMissing_Returns404()
+    {
+        Assert.IsType<NotFoundObjectResult>(_controller.GetRound(Guid.NewGuid(), 1));
+    }
+
+    [Fact]
+    public void GetBattle_ReturnsOneBattlesResult()
+    {
+        var ok = Assert.IsType<OkObjectResult>(_controller.GetBattle(_tournament.Id, 3));
+        var dto = Assert.IsType<BattleDto>(ok.Value);
+
+        Assert.Equal(3, dto.Id);
+        Assert.Equal(1, dto.RoundNumber);
+        Assert.Equal("FirstWins", dto.Outcome);
+        Assert.Equal("BaseExperience", dto.Reason);
+        Assert.Equal(dto.First.Id, dto.WinnerId);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(121)]
+    public void GetBattle_WhenBattleOutOfRange_Returns404(int battleId)
+    {
+        Assert.IsType<NotFoundObjectResult>(_controller.GetBattle(_tournament.Id, battleId));
+    }
+
+    [Fact]
+    public void GetBattle_WhenTournamentMissing_Returns404()
+    {
+        Assert.IsType<NotFoundObjectResult>(_controller.GetBattle(Guid.NewGuid(), 1));
+    }
+
+    [Fact]
+    public void GetHistory_ListsTournamentSummariesWithLeaders()
+    {
+        var fresh = Tournament.Create(Guid.NewGuid(), DateTimeOffset.UtcNow, TournamentTests.CreateParticipants());
+        _service.Setup(s => s.GetHistory()).Returns(new[] { fresh, _tournament });
+
+        var ok = Assert.IsType<OkObjectResult>(_controller.GetHistory());
+        var history = Assert.IsAssignableFrom<IReadOnlyList<TournamentSummaryDto>>(ok.Value);
+
+        Assert.Equal(new[] { fresh.Id, _tournament.Id }, history.Select(h => h.Id));
+        Assert.Empty(history[0].Leaders);
+        Assert.Equal(1, history[1].RoundsProcessed);
+        Assert.Equal(15, history[1].TotalRounds);
+        Assert.Equal("InProgress", history[1].Status);
+        Assert.Equal(8, history[1].Leaders.Count);
+        Assert.All(history[1].Leaders, l => Assert.Equal(1, l.Wins));
+    }
+}

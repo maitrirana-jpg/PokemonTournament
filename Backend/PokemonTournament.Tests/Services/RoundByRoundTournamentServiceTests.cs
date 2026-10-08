@@ -156,3 +156,21 @@ public class RoundByRoundTournamentServiceProcessTests
         Assert.Equal(TournamentStatus.Completed, tournament.Status);
     }
 }
+
+public class RoundByRoundTournamentServiceHistoryTests
+{
+    [Fact]
+    public async Task GetHistory_ReturnsStartedTournamentsNewestFirst()
+    {
+        var rosterProvider = new Mock<IRosterProvider>();
+        rosterProvider.Setup(p => p.GetRandomRosterAsync()).ReturnsAsync(() =>
+            Enumerable.Range(1, 16).Select(i => new Pokemon { Id = i, Name = $"p{i}", Type = "fire" }).ToList());
+        var store = new InMemoryTournamentStore(Options.Create(new TournamentOptions { MaxStoredTournaments = 10 }));
+        var service = new RoundByRoundTournamentService(rosterProvider.Object, store, new BattleService());
+
+        var first = await service.StartAsync();
+        var second = await service.StartAsync();
+
+        Assert.Equal(new[] { second!.Id, first!.Id }, service.GetHistory().Select(t => t.Id));
+    }
+}

@@ -84,6 +84,24 @@ namespace PokemonTournament.Models
                 tournament.Rounds.Count);
     }
 
+    /// <summary>One Tournament History entry. Leaders is empty until a Round is processed.</summary>
+    public sealed record TournamentSummaryDto(
+        Guid Id,
+        DateTimeOffset StartedAt,
+        string Status,
+        int RoundsProcessed,
+        int TotalRounds,
+        IReadOnlyList<StandingDto> Leaders)
+    {
+        public static TournamentSummaryDto From(Tournament tournament) =>
+            new(tournament.Id,
+                tournament.StartedAt,
+                tournament.Status.ToString(),
+                tournament.RoundsProcessed,
+                tournament.Rounds.Count,
+                tournament.GetLeaders().Select(StandingDto.From).ToList());
+    }
+
     public sealed record TournamentDto(
         Guid Id,
         DateTimeOffset StartedAt,
