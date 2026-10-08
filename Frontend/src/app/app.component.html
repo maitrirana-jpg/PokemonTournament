@@ -1,1 +1,9 @@
 <router-outlet></router-outlet>
+
+<footer class="version-switch container pb-4 text-center">
+  @if (isClassic) {
+    <a class="btn version-button" routerLink="/">Try the round-by-round tournament →</a>
+  } @else {
+    <a class="btn version-button" routerLink="/classic">View the classic version</a>
+  }
+</footer>

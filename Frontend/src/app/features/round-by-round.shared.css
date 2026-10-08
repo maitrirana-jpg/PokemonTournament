@@ -1,0 +1,221 @@
+/* Shared by the round-by-round pages; mirrors the classic page's look. */
+
+.rbr-page {
+	min-width: 0;
+}
+
+.rbr-intro {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 2rem;
+	padding: 0.9rem clamp(1rem, 2.5vw, 2rem);
+	border-radius: 1.25rem;
+	background: var(--ink);
+	color: var(--surface);
+	box-shadow: 0 0.75rem 1.5rem rgba(29, 41, 53, 0.14);
+	overflow: hidden;
+	position: relative;
+}
+
+.rbr-intro::after {
+	content: '';
+	position: absolute;
+	right: 12%;
+	top: -5rem;
+	width: 16rem;
+	height: 16rem;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 50%;
+}
+
+.rbr-intro h1 {
+	position: relative;
+	z-index: 1;
+	font-family: 'Space Grotesk', 'Trebuchet MS', sans-serif;
+	font-size: clamp(1.8rem, 4vw, 3rem);
+	font-weight: 700;
+	line-height: 0.95;
+}
+
+.rbr-intro h1 span {
+	color: var(--coral);
+}
+
+.eyebrow {
+	color: var(--gold);
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+}
+
+.intro-copy {
+	position: relative;
+	z-index: 1;
+	max-width: 34rem;
+	color: rgba(255, 253, 248, 0.7);
+	font-size: 0.82rem;
+}
+
+.intro-mark {
+	position: relative;
+	z-index: 1;
+	min-width: 8rem;
+	text-align: center;
+}
+
+.intro-mark span {
+	display: block;
+	width: 3.4rem;
+	height: 3.4rem;
+	margin: 0 auto -2.7rem;
+	border: 0.5rem solid var(--coral);
+	border-radius: 50%;
+}
+
+.intro-mark strong {
+	display: block;
+	font-family: 'Space Grotesk', sans-serif;
+	font-size: 2rem;
+	line-height: 1;
+}
+
+.intro-mark small {
+	color: rgba(255, 253, 248, 0.6);
+	font-size: 0.58rem;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+}
+
+.rbr-panel {
+	padding: 0.9rem 1rem;
+	border: 1px solid var(--line);
+	border-radius: 1rem;
+	background: var(--surface);
+	box-shadow: 0 0.5rem 1.5rem rgba(90, 70, 44, 0.05);
+}
+
+.rbr-panel h2 {
+	font-family: 'Space Grotesk', sans-serif;
+	font-size: 1.1rem;
+}
+
+.empty-panel {
+	padding: 2.5rem 1rem;
+}
+
+.muted {
+	color: var(--muted-ink);
+}
+
+.panel-heading,
+.results-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.panel-heading {
+	margin-bottom: 0.6rem;
+}
+
+.results-toolbar p {
+	color: var(--muted-ink);
+	font-size: 0.85rem;
+}
+
+.rbr-primary,
+.rbr-secondary {
+	border-radius: 0.6rem;
+	font-weight: 700;
+}
+
+.rbr-primary {
+	border: 1px solid var(--coral);
+	background: var(--coral);
+	color: #fff;
+}
+
+.rbr-primary:hover:not(:disabled) {
+	background: #d65f42;
+	color: #fff;
+}
+
+.rbr-primary:disabled {
+	border-color: var(--line);
+	background: var(--line);
+	color: var(--muted-ink);
+}
+
+.rbr-secondary {
+	border: 1px solid var(--line);
+	background: var(--surface);
+	color: var(--ink);
+}
+
+.rbr-secondary:hover {
+	border-color: var(--teal);
+	color: var(--teal);
+}
+
+.status-chip {
+	display: inline-block;
+	padding: 0.2rem 0.6rem;
+	border-radius: 1rem;
+	background: #edf7f4;
+	color: var(--teal);
+	font-size: 0.75rem;
+	font-weight: 700;
+}
+
+.status-chip.completed {
+	background: #fbefd9;
+	color: #a66b12;
+}
+
+.loading-state {
+	display: grid;
+	place-items: center;
+	min-height: 18rem;
+	color: var(--muted-ink);
+}
+
+.loading-orbit {
+	display: grid;
+	place-items: center;
+	width: 4rem;
+	height: 4rem;
+	border: 2px solid var(--line);
+	border-top-color: var(--coral);
+	border-radius: 50%;
+	animation: spin 0.9s linear infinite;
+}
+
+.loading-orbit span {
+	width: 1rem;
+	height: 1rem;
+	border-radius: 50%;
+	background: var(--teal);
+}
+
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+
+@media (max-width: 575.98px) {
+	.rbr-intro {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.intro-mark {
+		display: none;
+	}
+
+	.panel-heading {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+}

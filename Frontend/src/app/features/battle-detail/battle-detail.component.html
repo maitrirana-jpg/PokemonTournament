@@ -1,0 +1,46 @@
+<div class="container rbr-page py-4 py-md-5">
+  @if (isLoading) {
+    <div class="loading-state" role="status" aria-live="polite">
+      <div class="loading-orbit" aria-hidden="true"><span></span></div>
+      <p class="mt-3 mb-0">Loading battle...</p>
+    </div>
+  } @else if (notAvailable) {
+    <section class="rbr-panel empty-panel text-center" role="alert">
+      <h2>This battle is no longer available</h2>
+      <p class="muted mb-3">The tournament may have been cleared from memory.</p>
+      <a class="btn rbr-secondary" routerLink="/tournaments">Tournament history</a>
+    </section>
+  } @else if (battle) {
+    <a class="back-link" [routerLink]="['/tournaments', tournamentId]" [queryParams]="{ round: battle.roundNumber }">
+      ← Back to round {{ battle.roundNumber }}
+    </a>
+
+    <header class="rbr-intro my-3">
+      <div>
+        <p class="eyebrow mb-2">Round {{ battle.roundNumber }} · Battle {{ battle.id }}</p>
+        <h1 class="mb-2">{{ verdict }}</h1>
+        <p class="intro-copy mb-0">{{ reasonLabel }}</p>
+      </div>
+    </header>
+
+    <section class="matchup" aria-label="Matchup">
+      @for (fighter of [battle.first, battle.second]; track fighter.id; let second = $last) {
+        @if (second) {
+          <div class="versus" aria-label="versus">VS</div>
+        }
+        <article class="fighter-card rbr-panel" [class.winner]="isWinner(fighter)">
+          @if (isWinner(fighter)) {
+            <span class="winner-tag">Winner</span>
+          }
+          <img [src]="getPokemonImage(fighter.id)" [alt]="fighter.name">
+          <h2 class="text-capitalize">{{ fighter.name }}</h2>
+          <span class="badge rounded-pill {{ getTypeBadgeClass(fighter.type) }}">{{ fighter.type }}</span>
+          <dl class="mt-3 mb-0">
+            <dt>Base experience</dt>
+            <dd>{{ fighter.baseExperience }}</dd>
+          </dl>
+        </article>
+      }
+    </section>
+  }
+</div>

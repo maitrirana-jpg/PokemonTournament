@@ -1,0 +1,151 @@
+<div class="container rbr-page py-4 py-md-5">
+  <header class="rbr-intro mb-3">
+    <div>
+      <p class="eyebrow mb-2">Round-by-round</p>
+      <h1 class="mb-3">Pokémon <span>League</span></h1>
+      <p class="intro-copy mb-0">Sixteen Pokémon, fifteen rounds, every pair meets once. Step through it round by round.</p>
+    </div>
+    <div class="intro-mark" aria-hidden="true">
+      <span></span>
+      <strong>{{ tournament ? tournament.roundsProcessed : 16 }}</strong>
+      <small>{{ tournament ? 'of ' + tournament.totalRounds + ' rounds' : 'competitors' }}</small>
+    </div>
+  </header>
+
+  @if (isLoading) {
+    <div class="loading-state" role="status" aria-live="polite">
+      <div class="loading-orbit" aria-hidden="true"><span></span></div>
+      <p class="mt-3 mb-0">Loading tournament...</p>
+    </div>
+  } @else if (notAvailable) {
+    <section class="rbr-panel empty-panel text-center" role="alert">
+      <h2>This tournament is no longer available</h2>
+      <p class="muted mb-3">Tournaments are kept in memory, so older ones are cleared over time and after a server restart.</p>
+      <div class="d-flex justify-content-center gap-2 flex-wrap">
+        <button class="btn rbr-primary" type="button" (click)="start()" [disabled]="isStarting">
+          {{ isStarting ? 'Starting...' : 'Start a new tournament' }}
+        </button>
+        <a class="btn rbr-secondary" routerLink="/tournaments">Tournament history</a>
+      </div>
+    </section>
+  } @else if (!tournament) {
+    <section class="rbr-panel empty-panel text-center">
+      <p class="eyebrow mb-1">Ready when you are</p>
+      <h2>Draw 16 Pokémon and start the league</h2>
+      <p class="muted mb-3">Everyone starts even. Process one round at a time and watch the standings move.</p>
+      <div class="d-flex justify-content-center gap-2 flex-wrap">
+        <button class="btn rbr-primary" type="button" (click)="start()" [disabled]="isStarting">
+          {{ isStarting ? 'Drawing Pokémon...' : 'Start Tournament' }}
+        </button>
+        <a class="btn rbr-secondary" routerLink="/tournaments">Tournament history</a>
+      </div>
+    </section>
+  } @else {
+    <section class="rbr-panel control-bar mb-3" aria-label="Tournament controls">
+      <div>
+        <p class="eyebrow mb-1">Round {{ tournament.roundsProcessed }} of {{ tournament.totalRounds }}</p>
+        <span class="status-chip" [class.completed]="isCompleted">
+          {{ isCompleted ? 'Completed' : 'In progress' }}
+        </span>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a class="btn rbr-secondary" routerLink="/tournaments">History</a>
+        <button class="btn rbr-primary process-button" type="button"
+                (click)="processRound()"
+                [disabled]="isProcessing || isCompleted">
+          @if (isCompleted) {
+            Tournament complete
+          } @else if (isProcessing) {
+            Processing...
+          } @else {
+            Process Round {{ tournament.roundsProcessed + 1 }}
+          }
+        </button>
+      </div>
+    </section>
+
+    @if (isCompleted && leaders.length) {
+      <section class="leaders-banner mb-3" aria-label="Leaders">
+        <p class="eyebrow mb-1">{{ leaders.length > 1 ? 'Shared top spot' : 'Top of the league' }}</p>
+        <div class="leaders-list">
+          @for (leader of leaders; track leader.id) {
+            <span class="leader">
+              <img [src]="getPokemonImage(leader.id)" [alt]="leader.name">
+              {{ leader.name }} · {{ leader.wins }}W {{ leader.ties }}T {{ leader.losses }}L
+            </span>
+          }
+        </div>
+      </section>
+    }
+
+    <nav class="round-strip mb-3" aria-label="Rounds">
+      @for (round of tournament.rounds; track round.number) {
+        <button type="button"
+                class="round-tab"
+                [class.processed]="round.status === 'Processed'"
+                [class.next]="round === nextRound"
+                [class.active]="round.number === selectedRoundNumber"
+                [disabled]="!canSelect(round)"
+                [attr.aria-current]="round.number === selectedRoundNumber ? 'true' : null"
+                [attr.aria-label]="'Round ' + round.number + (round === nextRound ? ', coming up' : '')"
+                (click)="selectRound(round)">
+          {{ round.number }}
+        </button>
+      }
+    </nav>
+
+    @if (selectedRound; as round) {
+      <section class="rbr-panel mb-4" aria-labelledby="round-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow mb-1">{{ round.status === 'Processed' ? 'Results' : 'Coming up' }}</p>
+            <h2 id="round-title" class="mb-0">Round {{ round.number }}</h2>
+          </div>
+          @if (isReviewingPastRound) {
+            <button class="btn rbr-secondary btn-sm" type="button" (click)="showLatest()">Back to latest round</button>
+          }
+        </div>
+
+        <ul class="battle-list">
+          @for (battle of round.battles; track battle.id) {
+            <li class="battle-row">
+              @if (battle.status === 'Processed') {
+                <a [routerLink]="['/tournaments', tournament.id, 'battles', battle.id]" class="battle-link">
+                  <span class="fighter" [class.winner]="battle.winnerId === battle.first.id">{{ battle.first.name }}</span>
+                  <span class="vs">vs</span>
+                  <span class="fighter" [class.winner]="battle.winnerId === battle.second.id">{{ battle.second.name }}</span>
+                  <span class="reason">{{ battle.winnerId === null ? 'Tie' : 'Won by' }} · {{ getReasonLabel(battle.reason) }}</span>
+                </a>
+              } @else {
+                <div class="battle-link pending">
+                  <span class="fighter">{{ battle.first.name }}</span>
+                  <span class="vs">vs</span>
+                  <span class="fighter">{{ battle.second.name }}</span>
+                  <span class="reason">Not fought yet</span>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    <div class="results-toolbar mb-3">
+      <p class="mb-0">
+        @if (selectedRound?.status === 'Processed') {
+          Standings after round {{ selectedRound?.number }}
+        } @else {
+          Standings
+        }
+      </p>
+    </div>
+
+    <div class="row g-4">
+      @for (s of visibleStandings; track s.id) {
+        <div class="col-12 col-sm-6 col-lg-3">
+          <app-individual-cards [pokemon]="s" [rank]="s.rank" [lastResult]="roundResults.get(s.id)"></app-individual-cards>
+        </div>
+      }
+    </div>
+  }
+</div>
