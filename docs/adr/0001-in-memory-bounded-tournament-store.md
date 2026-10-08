@@ -1,0 +1,3 @@
+# Tournaments live in a bounded, in-memory store
+
+Tournaments, their Rounds and Battles are held in a process-wide in-memory store (no database, per the feature brief), capped at the most recent N Tournaments (configurable) with the oldest evicted. History is therefore lost on every restart and old Tournaments silently disappear; the API answers 404 for them and the UI treats that as "no longer available" rather than an error. We accepted this over an unbounded store (unbounded memory growth on a long-running server) and time-based expiry (an in-progress Tournament could vanish while the user is still stepping through it).
