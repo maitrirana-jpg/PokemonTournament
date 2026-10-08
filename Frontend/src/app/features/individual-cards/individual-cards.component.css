@@ -18,6 +18,12 @@
 	padding: 1.25rem;
 }
 
+/* Shrink the name column instead of wrapping the sprite onto its own line. */
+.card-heading {
+	flex: 1 1 0;
+	min-width: 0;
+}
+
 .card-title {
 	font-family: 'Space Grotesk', 'Trebuchet MS', sans-serif;
 	font-size: 1.25rem;
@@ -51,4 +57,38 @@
 .card .progress-bar {
 	background: var(--teal) !important;
 	border-radius: inherit;
+}
+
+.rank-chip,
+.result-chip {
+	display: inline-grid;
+	place-items: center;
+	min-width: 1.6rem;
+	height: 1.6rem;
+	padding: 0 0.4rem;
+	border-radius: 0.5rem;
+	font-family: 'Space Grotesk', sans-serif;
+	font-size: 0.72rem;
+	font-weight: 700;
+	vertical-align: middle;
+}
+
+.rank-chip {
+	background: var(--ink);
+	color: var(--surface);
+}
+
+.result-W {
+	background: var(--teal);
+	color: #fff;
+}
+
+.result-L {
+	background: var(--coral);
+	color: #fff;
+}
+
+.result-T {
+	background: var(--gold);
+	color: var(--ink);
 }

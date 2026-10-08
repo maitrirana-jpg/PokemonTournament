@@ -93,4 +93,24 @@ public class BattleServiceTests
 
         Assert.Equal(BattleResults.FirstWins, result);
     }
+
+    [Theory]
+    [InlineData("water", 50, "fire", 200, BattleResults.FirstWins, BattleOutcomeReason.TypeAdvantage)]
+    [InlineData("fire", 200, "water", 50, BattleResults.SecondWins, BattleOutcomeReason.TypeAdvantage)]
+    [InlineData("normal", 200, "normal", 100, BattleResults.FirstWins, BattleOutcomeReason.BaseExperience)]
+    [InlineData("normal", 100, "normal", 200, BattleResults.SecondWins, BattleOutcomeReason.BaseExperience)]
+    [InlineData("normal", 100, "normal", 100, BattleResults.Ties, BattleOutcomeReason.EqualBaseExperience)]
+    public void Decide_ReturnsSameResultAsFightResultWithItsReason(
+        string firstType, int firstExp, string secondType, int secondExp,
+        BattleResults expectedResult, BattleOutcomeReason expectedReason)
+    {
+        var first = CreatePokemon(firstType, firstExp);
+        var second = CreatePokemon(secondType, secondExp);
+
+        var (result, reason) = _service.Decide(first, second);
+
+        Assert.Equal(expectedResult, result);
+        Assert.Equal(expectedReason, reason);
+        Assert.Equal(_service.FightResult(first, second), result);
+    }
 }

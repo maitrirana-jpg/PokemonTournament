@@ -76,7 +76,7 @@ export class TournamentPageComponent implements OnInit {
           this.isLoading = false;
           console.error('Tournament statistics request failed.', error);
           this.router.navigate(['/error'], {
-            state: { returnUrl: '/' }
+            state: { returnUrl: '/classic' }
           });
         }
       });

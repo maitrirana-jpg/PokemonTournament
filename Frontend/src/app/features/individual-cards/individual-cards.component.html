@@ -4,10 +4,17 @@
   
     <div class="d-flex justify-content-between align-items-start flex-wrap">
 
-      <div class="mb-2">
+      <div class="card-heading mb-2">
+        @if (rank) {
+          <span class="rank-chip me-1" [attr.aria-label]="'Rank ' + rank">#{{ rank }}</span>
+        }
         <span class="badge rounded-pill mb-2 {{ typeBadgeClass }}">
           {{ pokemon.type }}
         </span>
+        @if (lastResult) {
+          <span class="result-chip result-{{ lastResult }} ms-1"
+                [attr.title]="resultLabels[lastResult] + ' this round'">{{ lastResult }}</span>
+        }
 
         <h5 class="card-title text-capitalize mb-0">
           {{ pokemon.name }}

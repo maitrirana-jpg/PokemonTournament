@@ -7,25 +7,30 @@ namespace PokemonTournament.Services
     {
         public BattleResults FightResult(Pokemon firstpokemon, Pokemon secondpokemon)
         {
+            return Decide(firstpokemon, secondpokemon).Result;
+        }
+
+        public (BattleResults Result, BattleOutcomeReason Reason) Decide(Pokemon firstpokemon, Pokemon secondpokemon)
+        {
             if(IsFirstPokemonWinner(firstpokemon.Type, secondpokemon.Type))
             {
-                return BattleResults.FirstWins;
+                return (BattleResults.FirstWins, BattleOutcomeReason.TypeAdvantage);
             }
             if(IsFirstPokemonWinner(secondpokemon.Type, firstpokemon.Type))
             {
-                return BattleResults.SecondWins;
+                return (BattleResults.SecondWins, BattleOutcomeReason.TypeAdvantage);
             }
             if(firstpokemon.BaseExperience > secondpokemon.BaseExperience)
             {
-                return BattleResults.FirstWins;
+                return (BattleResults.FirstWins, BattleOutcomeReason.BaseExperience);
             }
             if(firstpokemon.BaseExperience < secondpokemon.BaseExperience)
             {
-                return BattleResults.SecondWins;
+                return (BattleResults.SecondWins, BattleOutcomeReason.BaseExperience);
             }
             else
             {
-                return BattleResults.Ties;
+                return (BattleResults.Ties, BattleOutcomeReason.EqualBaseExperience);
             }
         }
 

@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
+      providers: [provideRouter([{ path: 'classic', children: [] }, { path: '', children: [] }])]
     }).compileComponents();
   });
 
@@ -20,10 +22,22 @@ describe('AppComponent', () => {
     expect(app.title).toEqual('Frontend');
   });
 
-  it('should render title', () => {
+  it('offers a button to the classic version at the end of the page', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, Frontend');
+    const link = (fixture.nativeElement as HTMLElement).querySelector('footer a');
+
+    expect(link?.textContent).toContain('View the classic version');
+    expect(link?.getAttribute('href')).toBe('/classic');
+  });
+
+  it('links back to round-by-round from the classic version', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    await TestBed.inject(Router).navigateByUrl('/classic');
+    fixture.detectChanges();
+    const link = (fixture.nativeElement as HTMLElement).querySelector('footer a');
+
+    expect(link?.textContent).toContain('round-by-round');
+    expect(link?.getAttribute('href')).toBe('/');
   });
 });

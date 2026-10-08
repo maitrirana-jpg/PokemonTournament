@@ -19,6 +19,11 @@ builder.Services.AddHttpClient<IPokeClient, PokeClient>();
 builder.Services.AddScoped<IBattleService, BattleService>();
 builder.Services.AddScoped<ITournamentService, TournamentService>();
 builder.Services.AddScoped<IAlertService, LoggingAlertService>();
+builder.Services.AddScoped<IRosterProvider, RosterProvider>();
+builder.Services.AddScoped<IRoundByRoundTournamentService, RoundByRoundTournamentService>();
+// Tournaments must outlive a request, so the store is a singleton (see docs/adr/0001).
+builder.Services.AddSingleton<ITournamentStore, InMemoryTournamentStore>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHealthChecks()
     .AddCheck<PokeApiHealthCheck>("pokeapi", tags: new[] { "ready", "dependency" });
 
